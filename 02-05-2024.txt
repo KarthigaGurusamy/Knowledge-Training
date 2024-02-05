@@ -1,0 +1,149 @@
+Scenario based PL/SQL problems and solutions:-
+--------------------------------------------
+
+NOTE : For tables and mappings refer readme of this repository.
+
+1. To write a procedure to find whether a selected department has any vacancies. If there is vacancy then show how many 
+vacancy are there in that selected department.
+(Note: Here each department has only 6 people)
+
+Solution:-
+--------
+delimiter //
+create procedure check_vacancy(in department_name varchar(150), out is_vacant varchar(255))
+begin
+
+	declare total_employee_count int;
+    
+    select count(*) into total_employee_count from x_employees as e 
+    inner join x_department as d on e.dep_id = d.department_id 
+    where d.department_name = department_name;
+    
+    if total_employee_count > 5 then
+		set is_vacant = 'The department has no vacancy';
+	else 
+		set is_vacant = 'The department has vacancy'; 
+	end if;
+end //
+delimiter ;
+
+call check_vacancy('Enterprise Sales', @is_vacant);
+call check_vacancy('Direct Sales', @is_vacant);
+call check_vacancy('Consultative Sales', @is_vacant);
+select @is_vacant as isvacant;
+
+
+
+
+
+2. To write a procedure to update the salary of the employees by 5% if the employee achieved the sales target. 
+(Note: The target is 100)
+
+Solution:-
+--------
+delimiter //
+create procedure update_employee_salary()
+begin 
+
+	update x_salary set employee_salary = (employee_salary * 0.05) + employee_salary where employee_id
+    in (select employee_id from x_sales where total_sales > 100) and employee_id is not null;
+
+end //
+delimiter ;
+
+
+call update_employee_salary();
+
+
+
+
+
+3. To write a procedure to display all the employees in a selected department with minimum and maximum salary.
+
+Solution:-
+--------
+delimiter //
+create procedure employee_min_max_salary_dep(in department_name varchar(150))
+
+begin
+
+	declare min_sal decimal(10,2);
+    declare max_sal decimal(10,2);
+    declare min_sal_emp varchar(100);
+    declare max_sal_emp varchar(100);
+	
+    select min(s.employee_salary), max(s.employee_salary) into min_sal, max_sal from x_salary as s 
+    inner join x_employees as e on e.employee_id = s.employee_id
+    inner join x_department as d on d.department_id = e.dep_id
+    where d.department_name=department_name;
+    
+    select e.employee_name into min_sal_emp from x_employees as e 
+    inner join x_salary as s on s.employee_id = e.employee_id 
+    inner join x_department as d on d.department_id = e.dep_id  
+    where d.department_name=department_name and s.employee_salary = min_sal;
+    
+    select e.employee_name into max_sal_emp from x_employees as e 
+    inner join x_salary as s on s.employee_id = e.employee_id 
+    inner join x_department as d on d.department_id = e.dep_id  
+    where d.department_name=department_name and s.employee_salary = max_sal;
+    
+    select min_sal_emp,min_sal,max_sal_emp,max_sal;
+    
+end //
+delimiter ;
+
+-- drop procedure employee_min_max_salary_dep;
+call employee_min_max_salary_dep('Enterprise Sales')
+    
+
+
+
+
+4. To write a procedure to display the list of employees with the sales target for a selected Manager.
+
+Solution:-
+--------
+delimiter //
+create procedure team_sales_target(in manager_name varchar(100))
+begin
+    
+    select distinct e.employee_name, s.total_sales from x_employees as e 
+    inner join x_sales as s on s.employee_id = e.employee_id
+    inner join x_department as d on d.department_id = e.dep_id
+    inner join x_manager as m on m.dept_id_manager = d.department_id
+    where m.manager_name = manager_name;
+
+end //
+delimiter ;
+
+-- drop procedure team_sales_target;
+
+call team_sales_target('Ramana');
+call team_sales_target('Jothika');
+call team_sales_target('Rajesh');
+
+
+
+
+
+5. To write a procedure to rank all the employees based on their sales achieved.
+(Note: Using both rank and dense rank)
+
+Solution:-
+--------
+delimiter //
+create procedure employee_sales_ranks()
+begin
+	
+    select e.employee_name, s.total_sales, rank() over (order by s.total_sales desc) as normalrank,
+    dense_rank() over (order by s.total_sales desc) as denserank from x_employees as e
+    inner join x_sales as s on e.employee_id = s.employee_id;
+    
+end //
+delimiter ;
+
+-- drop procedure employee_sales_ranks;
+
+call employee_sales_ranks();
+
+
